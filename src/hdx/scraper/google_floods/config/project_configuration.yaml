@@ -19,6 +19,7 @@ dataset_info:
     - gaugeIds
     - eventPolygonId
     - eventTrackingIds
+    - dateRetrieved
   tags:
     - "flooding"
     - "natural disaster"

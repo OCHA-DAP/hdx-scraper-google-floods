@@ -28,11 +28,13 @@ class Pipeline:
         configuration: Configuration,
         retriever: Retrieve,
         google_key: str,
+        today: datetime,
         tempdir: str,
     ):
         self._configuration = configuration
         self._retriever = retriever
         self._google_key = google_key
+        self._today = today
         self._tempdir = tempdir
 
     def get_events(self) -> list[dict]:
@@ -68,13 +70,14 @@ class Pipeline:
                     iso3 = "Unknown"
                 country_isos.append(iso3)
             e["affectedCountryISO3s"] = country_isos
+            e["dateRetrieved"] = self._today.strftime("%Y-%m-%d")
 
         events = flatten_dict(events)
 
         return events
 
     def generate_dataset(
-        self, events: list[dict], today: datetime, force_refresh: bool = False
+        self, events: list[dict], force_refresh: bool = False
     ) -> Dataset | None:
         all_events = []
         dataset_info = self._configuration["dataset_info"]
@@ -107,12 +110,12 @@ class Pipeline:
         for event in all_events:
             dates.append(event["startTime"])
         start_date = min(dates)
-        dataset.set_time_period(start_date, today)
+        dataset.set_time_period(start_date, self._today)
+        start_date = parse_date(start_date).strftime("%b %d %Y")
 
         dataset.add_tags(dataset_info["tags"])
         dataset.add_other_location("world")
 
-        start_date = parse_date(start_date).strftime("%b %d %Y")
         # Add csv resource
         resource_data = {
             "name": dataset_info["csv_resource_name"],
@@ -162,7 +165,10 @@ class Pipeline:
                 {
                     "type": "Feature",
                     "geometry": geometry,
-                    "properties": {"eventPolygonId": polygon_id},
+                    "properties": {
+                        "eventPolygonId": polygon_id,
+                        "dateRetrieved": self._today.strftime("%Y-%m-%d"),
+                    },
                 }
             )
         return geometries
