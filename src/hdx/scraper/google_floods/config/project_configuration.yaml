@@ -6,6 +6,17 @@ dataset_info:
   title: "Significant Flood Events"
   resource_name: "significant_flood_events.csv"
   resource_description: "Significant flood events starting on {start_date}"
+  headers:
+    - startTime
+    - minimumEndTime
+    - endTime
+    - affectedCountryCodes
+    - affectedPopulation
+    - areaKm2
+    - gaugeIds
+    - eventPolygonId
+    - eventTrackingIds
+    - geometry
   tags:
     - "flooding"
     - "natural disaster"

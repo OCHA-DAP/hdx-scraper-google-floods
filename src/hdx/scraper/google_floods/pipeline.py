@@ -60,16 +60,26 @@ class Pipeline:
 
         return events
 
-    def generate_dataset(self, events: list[dict], today: datetime) -> Dataset | None:
+    def generate_dataset(
+        self, events: list[dict], today: datetime, force_refresh: bool = False
+    ) -> Dataset | None:
+        all_events = []
         dataset_info = self._configuration["dataset_info"]
-        dataset = Dataset.read_from_hdx(dataset_info["name"])
+        if force_refresh:
+            dataset = None
+        else:
+            dataset = Dataset.read_from_hdx(dataset_info["name"])
         if dataset:
             resource = dataset.get_resources()[0]
             _, rows = self._retriever.get_tabular_rows(resource["url"], dict_form=True)
             for row in rows:
-                if row not in events:
-                    events.append(row)
-        events = sorted(events, key=lambda e: e["startTime"])
+                old_event = {key: value for key, value in row.items() if value}
+                all_events.append(old_event)
+        for e in events:
+            str_e = {key: str(value) for key, value in e.items()}
+            if str_e not in all_events:
+                all_events.append(e)
+        all_events = sorted(all_events, key=lambda x: x["startTime"])
         dataset = Dataset(
             {
                 "name": dataset_info["name"],
@@ -78,7 +88,7 @@ class Pipeline:
         )
 
         dates = []
-        for event in events:
+        for event in all_events:
             dates.append(event["startTime"])
         start_date = min(dates)
         dataset.set_time_period(start_date, today)
@@ -96,9 +106,9 @@ class Pipeline:
         dataset.generate_resource(
             self._tempdir,
             dataset_info["resource_name"],
-            events,
+            all_events,
             resource_data,
-            list(events[0].keys()),
+            list(dataset_info["headers"]),
             encoding="utf-8-sig",
         )
 

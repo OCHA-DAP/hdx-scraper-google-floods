@@ -28,6 +28,7 @@ logger = logging.getLogger(__name__)
 _LOOKUP = "hdx-scraper-google-floods"
 _SAVED_DATA_DIR = "saved_data"  # Keep in repo to avoid deletion in /tmp
 _UPDATED_BY_SCRIPT = "HDX Scraper: Google Floods"
+_FORCE_REFRESH = False
 
 
 def main(
@@ -63,7 +64,7 @@ def main(
 
             pipeline = Pipeline(configuration, retriever, tempdir)
             events = pipeline.get_data(google_key)
-            dataset = pipeline.generate_dataset(events, today)
+            dataset = pipeline.generate_dataset(events, today, _FORCE_REFRESH)
             if dataset:
                 dataset.update_from_yaml(
                     script_dir_plus_file(
