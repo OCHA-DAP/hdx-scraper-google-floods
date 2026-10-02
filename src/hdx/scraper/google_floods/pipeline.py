@@ -7,6 +7,7 @@ from datetime import datetime
 
 from hdx.api.configuration import Configuration
 from hdx.data.dataset import Dataset
+from hdx.location.country import Country
 from hdx.utilities.dateparse import parse_date
 from hdx.utilities.retriever import Retrieve
 
@@ -49,6 +50,15 @@ class Pipeline:
 
         logger.info(f"significant events: {len(events)}")
         for e in events:
+            country_codes = e["affectedCountryCodes"]
+            country_isos = []
+            for country_code in country_codes:
+                iso3 = Country.get_iso3_from_iso2(country_code)
+                if iso3 is None:
+                    iso3 = "Unknown"
+                country_isos.append(iso3)
+            e["affectedCountryISO3s"] = country_isos
+
             polygon_id = e["eventPolygonId"]
             json = self._retriever.download_json(
                 f"{self._configuration['base_url']}/serializedPolygons/{polygon_id}",

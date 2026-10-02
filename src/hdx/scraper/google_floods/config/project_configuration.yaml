@@ -11,6 +11,7 @@ dataset_info:
     - minimumEndTime
     - endTime
     - affectedCountryCodes
+    - affectedCountryISO3s
     - affectedPopulation
     - areaKm2
     - gaugeIds
