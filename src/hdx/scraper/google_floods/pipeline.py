@@ -3,7 +3,7 @@
 
 import logging
 import re
-from datetime import datetime
+from datetime import datetime, timedelta
 from os.path import join
 
 from hdx.api.configuration import Configuration
@@ -79,25 +79,14 @@ class Pipeline:
     def generate_dataset(
         self, events: list[dict], force_refresh: bool = False
     ) -> Dataset | None:
-        all_events = []
         dataset_info = self._configuration["dataset_info"]
-        if force_refresh:
-            dataset = None
-        else:
-            dataset = Dataset.read_from_hdx(dataset_info["name"])
-        if dataset:
-            resources = dataset.get_resources()
-            resource = resources[0]
-            _, rows = self._retriever.get_tabular_rows(resource["url"], dict_form=True)
-            for row in rows:
-                old_event = {key: value for key, value in row.items() if value}
-                all_events.append(old_event)
-        for e in events:
-            str_e = {key: str(value) for key, value in e.items()}
-            if str_e not in all_events:
-                all_events.append(e)
-        all_events = sorted(all_events, key=lambda x: x["startTime"])
-        geometries = self.get_geometry(all_events)
+        all_events, all_geometries = self.get_old_data(dataset_info, force_refresh)
+        all_events.extend(events)
+        all_events = sorted(all_events, key=lambda x: x["dateRetrieved"])
+        all_geometries = self.get_geometry(events, all_geometries)
+        events_10_days, geometries_10_days = self.filter_data(
+            all_events, all_geometries
+        )
 
         dataset = Dataset(
             {
@@ -106,54 +95,80 @@ class Pipeline:
             }
         )
 
-        dates = []
-        for event in all_events:
-            dates.append(event["startTime"])
-        start_date = min(dates)
+        dates = [event["startTime"] for event in all_events]
+        start_date = parse_date(min(dates))
         dataset.set_time_period(start_date, self._today)
-        start_date = parse_date(start_date).strftime("%b %d %Y")
 
         dataset.add_tags(dataset_info["tags"])
         dataset.add_other_location("world")
 
-        # Add csv resource
-        resource_data = {
-            "name": dataset_info["csv_resource_name"],
-            "description": dataset_info["csv_resource_description"].format(
-                start_date=start_date
-            ),
-        }
-        dataset.generate_resource(
-            self._tempdir,
-            dataset_info["csv_resource_name"],
-            all_events,
-            resource_data,
-            list(dataset_info["headers"]),
-            encoding="utf-8-sig",
+        dataset = self.add_resources(
+            dataset, all_events, all_geometries, start_date, True
+        )
+        start_date_10 = max(self._today - timedelta(days=10), start_date)
+        dataset = self.add_resources(
+            dataset, events_10_days, geometries_10_days, start_date_10, False
         )
 
-        # Add geojson resource
-        out_file = join(self._tempdir, dataset_info["json_resource_name"])
-        save_json(geometries, out_file)
-        resource = Resource(
-            {
-                "name": dataset_info["json_resource_name"],
-                "description": dataset_info["json_resource_description"].format(
-                    start_date=start_date
-                ),
-            }
-        )
-        resource.set_format("geojson")
-        resource.set_file_to_upload(out_file)
-        dataset.add_update_resource(resource)
+        dataset.preview_off()
+        for resource in dataset.get_resources():
+            if resource.get_format() == "geojson" and "10_days" in resource["name"]:
+                resource.enable_dataset_preview()
+        dataset.preview_resource()
 
         return dataset
 
-    def get_geometry(self, events):
-        geometries = {
+    def get_old_data(
+        self, dataset_info: dict, force_refresh: bool = False
+    ) -> tuple[list, dict]:
+        all_events = []
+        all_geometries = {}
+        if force_refresh:
+            return all_events, all_geometries
+        dataset = Dataset.read_from_hdx(dataset_info["name"])
+        if not dataset:
+            return all_events, all_geometries
+        resources = dataset.get_resources()
+        resource = [
+            r for r in resources if r["name"] == f"{dataset_info['resource_name']}.csv"
+        ][0]
+        _, rows = self._retriever.get_tabular_rows(resource["url"], dict_form=True)
+        for row in rows:
+            all_events.append(row)
+        resource = [
+            r
+            for r in resources
+            if r["name"] == f"{dataset_info['resource_name']}.geojson"
+        ][0]
+        all_geometries = self._retriever.download_json(resource["url"])
+        return all_events, all_geometries
+
+    def filter_data(
+        self, events: list[dict], geometries: dict
+    ) -> tuple[list[dict], dict]:
+        events_10_days = []
+        geometries_10_days = {
             "type": "FeatureCollection",
             "features": [],
         }
+        for event in events:
+            date_retrieved = parse_date(event["dateRetrieved"])
+            if date_retrieved < self._today - timedelta(days=10):
+                continue
+            events_10_days.append(event)
+        for feature in geometries["features"]:
+            date_retrieved = parse_date(feature["properties"]["dateRetrieved"])
+            if date_retrieved < self._today - timedelta(days=10):
+                continue
+            geometries_10_days["features"].append(feature)
+        return events_10_days, geometries_10_days
+
+    def get_geometry(self, events: list[dict], geometries: dict) -> dict:
+        if len(geometries) == 0:
+            geometries = {
+                "type": "FeatureCollection",
+                "features": [],
+            }
         for event in events:
             polygon_id = event["eventPolygonId"]
             json = self._retriever.download_json(
@@ -172,6 +187,53 @@ class Pipeline:
                 }
             )
         return geometries
+
+    def add_resources(
+        self,
+        dataset: Dataset,
+        events: list[dict],
+        geometries: dict,
+        start_date: datetime,
+        full_series: bool,
+    ) -> Dataset:
+        dataset_info = self._configuration["dataset_info"]
+        start_date = start_date.strftime("%b %d %Y")
+
+        # Add csv resource
+        resource_name = dataset_info["resource_name"]
+        if not full_series:
+            resource_name = f"{resource_name}_past_10_days"
+        resource_data = {
+            "name": f"{resource_name}.csv",
+            "description": dataset_info["csv_resource_description"].format(
+                start_date=start_date
+            ),
+        }
+        dataset.generate_resource(
+            self._tempdir,
+            f"{resource_name}.csv",
+            events,
+            resource_data,
+            list(dataset_info["headers"]),
+            encoding="utf-8-sig",
+        )
+
+        # Add geojson resource
+        resource_name = f"{resource_name}.geojson"
+        out_file = join(self._tempdir, resource_name)
+        save_json(geometries, out_file)
+        resource = Resource(
+            {
+                "name": resource_name,
+                "description": dataset_info["json_resource_description"].format(
+                    start_date=start_date
+                ),
+            }
+        )
+        resource.set_format("geojson")
+        resource.set_file_to_upload(out_file)
+        dataset.add_update_resource(resource)
+        return dataset
 
 
 def kml_to_multipolygon(kml: str) -> dict:
