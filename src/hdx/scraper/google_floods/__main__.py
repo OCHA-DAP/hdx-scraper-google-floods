@@ -62,8 +62,8 @@ def main(
             google_key = getenv("GOOGLE_KEY")
             today = now_utc()
 
-            pipeline = Pipeline(configuration, retriever, tempdir)
-            events = pipeline.get_data(google_key)
+            pipeline = Pipeline(configuration, retriever, google_key, tempdir)
+            events = pipeline.get_events()
             dataset = pipeline.generate_dataset(events, today, _FORCE_REFRESH)
             if dataset:
                 dataset.update_from_yaml(

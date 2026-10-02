@@ -4,12 +4,15 @@
 import logging
 import re
 from datetime import datetime
+from os.path import join
 
 from hdx.api.configuration import Configuration
 from hdx.data.dataset import Dataset
+from hdx.data.resource import Resource
 from hdx.location.country import Country
 from hdx.utilities.dateparse import parse_date
 from hdx.utilities.retriever import Retrieve
+from hdx.utilities.saver import save_json
 
 logger = logging.getLogger(__name__)
 
@@ -20,16 +23,23 @@ _POLY = re.compile(r"<Polygon>(.*?)</Polygon>", re.S)
 
 
 class Pipeline:
-    def __init__(self, configuration: Configuration, retriever: Retrieve, tempdir: str):
+    def __init__(
+        self,
+        configuration: Configuration,
+        retriever: Retrieve,
+        google_key: str,
+        tempdir: str,
+    ):
         self._configuration = configuration
         self._retriever = retriever
+        self._google_key = google_key
         self._tempdir = tempdir
 
-    def get_data(self, google_key: str) -> list[dict]:
+    def get_events(self) -> list[dict]:
         events = []
         token = None
         params = {
-            "key": google_key,
+            "key": self._google_key,
             "pageSize": 1000,
         }
         count = 0
@@ -59,13 +69,6 @@ class Pipeline:
                 country_isos.append(iso3)
             e["affectedCountryISO3s"] = country_isos
 
-            polygon_id = e["eventPolygonId"]
-            json = self._retriever.download_json(
-                f"{self._configuration['base_url']}/serializedPolygons/{polygon_id}",
-                parameters={"key": google_key},
-            )
-            e["geometry"] = kml_to_multipolygon(json.get("kml", ""))
-
         events = flatten_dict(events)
 
         return events
@@ -80,7 +83,8 @@ class Pipeline:
         else:
             dataset = Dataset.read_from_hdx(dataset_info["name"])
         if dataset:
-            resource = dataset.get_resources()[0]
+            resources = dataset.get_resources()
+            resource = resources[0]
             _, rows = self._retriever.get_tabular_rows(resource["url"], dict_form=True)
             for row in rows:
                 old_event = {key: value for key, value in row.items() if value}
@@ -90,6 +94,8 @@ class Pipeline:
             if str_e not in all_events:
                 all_events.append(e)
         all_events = sorted(all_events, key=lambda x: x["startTime"])
+        geometries = self.get_geometry(all_events)
+
         dataset = Dataset(
             {
                 "name": dataset_info["name"],
@@ -107,22 +113,59 @@ class Pipeline:
         dataset.add_other_location("world")
 
         start_date = parse_date(start_date).strftime("%b %d %Y")
+        # Add csv resource
         resource_data = {
-            "name": dataset_info["resource_name"],
-            "description": dataset_info["resource_description"].format(
+            "name": dataset_info["csv_resource_name"],
+            "description": dataset_info["csv_resource_description"].format(
                 start_date=start_date
             ),
         }
         dataset.generate_resource(
             self._tempdir,
-            dataset_info["resource_name"],
+            dataset_info["csv_resource_name"],
             all_events,
             resource_data,
             list(dataset_info["headers"]),
             encoding="utf-8-sig",
         )
 
+        # Add geojson resource
+        out_file = join(self._tempdir, dataset_info["json_resource_name"])
+        save_json(geometries, out_file)
+        resource = Resource(
+            {
+                "name": dataset_info["json_resource_name"],
+                "description": dataset_info["json_resource_description"].format(
+                    start_date=start_date
+                ),
+            }
+        )
+        resource.set_format("geojson")
+        resource.set_file_to_upload(out_file)
+        dataset.add_update_resource(resource)
+
         return dataset
+
+    def get_geometry(self, events):
+        geometries = {
+            "type": "FeatureCollection",
+            "features": [],
+        }
+        for event in events:
+            polygon_id = event["eventPolygonId"]
+            json = self._retriever.download_json(
+                f"{self._configuration['base_url']}/serializedPolygons/{polygon_id}",
+                parameters={"key": self._google_key},
+            )
+            geometry = kml_to_multipolygon(json.get("kml", ""))
+            geometries["features"].append(
+                {
+                    "type": "Feature",
+                    "geometry": geometry,
+                    "properties": {"eventPolygonId": polygon_id},
+                }
+            )
+        return geometries
 
 
 def kml_to_multipolygon(kml: str) -> dict:
@@ -150,9 +193,7 @@ def flatten_dict(events: list[dict]) -> list[dict]:
     for event in events:
         flat_event = {}
         for key, value in event.items():
-            if key == "geometry":
-                flat_event["geometry"] = str(value)
-            elif isinstance(value, dict):
+            if isinstance(value, dict):
                 for k, v in value.items():
                     flat_event[k] = v
             elif isinstance(value, list):

@@ -4,8 +4,10 @@ base_url: "https://floodforecasting.googleapis.com/v1"
 dataset_info:
   name: "google-floods-significant-events"
   title: "Significant Flood Events"
-  resource_name: "significant_flood_events.csv"
-  resource_description: "Significant flood events starting on {start_date}"
+  csv_resource_name: "significant_flood_events.csv"
+  csv_resource_description: "Significant flood events starting on {start_date}"
+  json_resource_name: "significant_flood_events.geojson"
+  json_resource_description: "Significant flood event geometry starting on {start_date}"
   headers:
     - startTime
     - minimumEndTime
@@ -17,7 +19,6 @@ dataset_info:
     - gaugeIds
     - eventPolygonId
     - eventTrackingIds
-    - geometry
   tags:
     - "flooding"
     - "natural disaster"
