@@ -3,7 +3,7 @@
 
 import logging
 import re
-from datetime import datetime, timedelta
+from datetime import datetime
 from os.path import join
 
 from hdx.api.configuration import Configuration
@@ -84,9 +84,6 @@ class Pipeline:
         all_events.extend(events)
         all_events = sorted(all_events, key=lambda x: x["dateRetrieved"])
         all_geometries = self.get_geometry(events, all_geometries)
-        events_10_days, geometries_10_days = self.filter_data(
-            all_events, all_geometries
-        )
 
         dataset = Dataset(
             {
@@ -102,19 +99,9 @@ class Pipeline:
         dataset.add_tags(dataset_info["tags"])
         dataset.add_other_location("world")
 
-        dataset = self.add_resources(
-            dataset, all_events, all_geometries, start_date, True
-        )
-        start_date_10 = max(self._today - timedelta(days=10), start_date)
-        dataset = self.add_resources(
-            dataset, events_10_days, geometries_10_days, start_date_10, False
-        )
+        dataset = self.add_resources(dataset, all_events, all_geometries, start_date)
 
-        dataset.preview_off()
-        for resource in dataset.get_resources():
-            if resource.get_format() == "geojson" and "10_days" in resource["name"]:
-                resource.enable_dataset_preview()
-        dataset.preview_resource()
+        dataset.set_custom_viz(dataset_info["custom_viz"])
 
         return dataset
 
@@ -142,26 +129,6 @@ class Pipeline:
         ][0]
         all_geometries = self._retriever.download_json(resource["url"])
         return all_events, all_geometries
-
-    def filter_data(
-        self, events: list[dict], geometries: dict
-    ) -> tuple[list[dict], dict]:
-        events_10_days = []
-        geometries_10_days = {
-            "type": "FeatureCollection",
-            "features": [],
-        }
-        for event in events:
-            date_retrieved = parse_date(event["dateRetrieved"])
-            if date_retrieved < self._today - timedelta(days=10):
-                continue
-            events_10_days.append(event)
-        for feature in geometries["features"]:
-            date_retrieved = parse_date(feature["properties"]["dateRetrieved"])
-            if date_retrieved < self._today - timedelta(days=10):
-                continue
-            geometries_10_days["features"].append(feature)
-        return events_10_days, geometries_10_days
 
     def get_geometry(self, events: list[dict], geometries: dict) -> dict:
         if len(geometries) == 0:
@@ -194,15 +161,12 @@ class Pipeline:
         events: list[dict],
         geometries: dict,
         start_date: datetime,
-        full_series: bool,
     ) -> Dataset:
         dataset_info = self._configuration["dataset_info"]
         start_date = start_date.strftime("%b %d %Y")
 
         # Add csv resource
         resource_name = dataset_info["resource_name"]
-        if not full_series:
-            resource_name = f"{resource_name}_past_10_days"
         resource_data = {
             "name": f"{resource_name}.csv",
             "description": dataset_info["csv_resource_description"].format(

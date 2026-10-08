@@ -7,6 +7,7 @@ dataset_info:
   resource_name: "significant_flood_events"
   csv_resource_description: "Significant flood events starting on {start_date}"
   json_resource_description: "Significant flood event geometry starting on {start_date}"
+  custom_viz: "https://raw.githubusercontent.com/OCHA-DAP/hdx-scraper-google-floods/refs/heads/main/src/hdx/scraper/google_floods/config/flood_image.jpeg"
   headers:
     - startTime
     - minimumEndTime
