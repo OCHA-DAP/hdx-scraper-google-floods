@@ -1,6 +1,6 @@
 license_id: cc-by
 methodology: Other
-methodology_other: See more about how this data is calculated [here](https://support.google.com/flood-hub/answer/15638002)
+methodology_other: See more about how this data is calculated [here](https://sites.research.google/floods/l/0/0/3)
 caveats: Significant events are predicted flood events with high probability and high impact. They cover places where we don't have quality-verified gauges.
 dataset_source: Google
 package_creator: HDX Data Systems Team
