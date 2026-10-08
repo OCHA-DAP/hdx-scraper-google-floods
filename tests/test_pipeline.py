@@ -49,7 +49,7 @@ class TestPipeline:
                     "groups": [{"name": "world"}],
                     "customviz": [
                         {
-                            "url": "https://raw.githubusercontent.com/OCHA-DAP/hdx-scraper-google-floods/refs/heads/main/src/hdx/scraper/google_floods/config/flood_image.jpeg"
+                            "url": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEi985o5uvW39heXyD2OdJwYCXBHokt5ef7vd4cBH4wRAwOry-6QWZ8p51RtLJeqanho7OGAtAX0ZvKqOUESmx-VJkZJiyAEcYJx2E5zVZiWE23cEukRj7VL6rJz4ygnt1EjbOa5Q05gW-P7vpqtvT1QGam6xdP5EaC9oBvMUJHeZX4gvC_b0n3GyoF5/s1280/Flood%20Hub%20-%20models.jpg"
                         }
                     ],
                     "license_id": "cc-by",
