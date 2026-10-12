@@ -54,15 +54,15 @@ class TestPipeline:
                     ],
                     "license_id": "cc-by",
                     "methodology": "Other",
-                    "methodology_other": "See more about how this data is calculated [here](https://sites.research.google/floods/l/0/0/3)",
-                    "caveats": "Significant events are predicted flood events with high probability and high impact. They cover places where we don't have quality-verified gauges.",
+                    "methodology_other": "See more about how this data is calculated [here](https://sites.research.google/gr/floodforecasting/)",
+                    "caveats": "Our models are currently covering more than 150 locations. See the list [here](https://support.google.com/flood-hub/answer/16508958?hl=en)",
                     "dataset_source": "Google",
                     "package_creator": "HDX Data Systems Team",
                     "private": False,
                     "maintainer": "aa13de36-28c5-47a7-8d0b-6d7c754ba8c8",
                     "owner_org": "61123101-08fb-489f-ae46-90ea584d32c6",
                     "data_update_frequency": 7,
-                    "notes": "Significant flood events are areas at high risk of major flood events based on early forecasts developed by Google Research, using the Global Hydrological Model. The system uses gauge based discharge predictions, which are then clustered for basins which exceed danger level thresholds. It also incorporates the area of impact and the population within that area. These clusters indicate areas with a high risk of potential flooding.",
+                    "notes": "Significant flood events are areas at high risk of major flood events based on early forecasts developed by Google Research, using the Global Hydrological Model. The system uses gauge based discharge predictions, which are then clustered for basins which exceed danger level thresholds. It also incorporates the area of impact and the population within that area. These clusters indicate areas with a high risk of potential flooding. Significant events are predicted flood events with high probability and high impact. They also cover places where we don't have quality-verified gauges.",
                     "subnational": "1",
                 }
 
