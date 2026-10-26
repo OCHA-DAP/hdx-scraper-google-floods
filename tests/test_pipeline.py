@@ -62,7 +62,7 @@ class TestPipeline:
                     "maintainer": "aa13de36-28c5-47a7-8d0b-6d7c754ba8c8",
                     "owner_org": "61123101-08fb-489f-ae46-90ea584d32c6",
                     "data_update_frequency": 7,
-                    "notes": "Significant flood events are areas at high risk of major flood events based on early forecasts developed by Google Research, using the Global Hydrological Model. The system uses gauge based discharge predictions, which are then clustered for basins which exceed danger level thresholds. It also incorporates the area of impact and the population within that area. These clusters indicate areas with a high risk of potential flooding. Significant events are predicted flood events with high probability and high impact. They also cover places where we don't have quality-verified gauges.",
+                    "notes": "Significant flood events are areas at high risk of major flood events based on early forecasts developed by Google Research, using the Global Hydrological Model. The system uses gauge based discharge predictions, which are then clustered for basins which exceed danger level thresholds. It also incorporates the area of impact and the population within that area. These clusters indicate areas with a high risk of potential flooding. Significant events are predicted flood events with high probability and high impact. They also cover places where we don't have quality-verified gauges.\n\nFlood conditions are approximate and are for informational purposes only. Check official sources for more information. Visit https://sites.research.google/gr/floodforecasting to learn more about Google's Flood Forecasting initiative.\n",
                     "subnational": "1",
                 }
 
