@@ -49,9 +49,10 @@ class TestPipeline:
                     "groups": [{"name": "world"}],
                     "customviz": [
                         {
-                            "url": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEi985o5uvW39heXyD2OdJwYCXBHokt5ef7vd4cBH4wRAwOry-6QWZ8p51RtLJeqanho7OGAtAX0ZvKqOUESmx-VJkZJiyAEcYJx2E5zVZiWE23cEukRj7VL6rJz4ygnt1EjbOa5Q05gW-P7vpqtvT1QGam6xdP5EaC9oBvMUJHeZX4gvC_b0n3GyoF5/s900/Flood%20Hub%20-%20models.jpg"
+                            "url": "https://storage.googleapis.com/gweb-research2023-media/images/FloodHub.width-1250.png"
                         }
                     ],
+                    "dataset_preview": "no_preview",
                     "license_id": "cc-by",
                     "methodology": "Other",
                     "methodology_other": "See more about how this data is calculated [here](https://sites.research.google/gr/floodforecasting/)",
@@ -72,11 +73,13 @@ class TestPipeline:
                         "name": "significant_flood_events.csv",
                         "description": "Significant flood events starting on Sep 24 2026",
                         "format": "csv",
+                        "dataset_preview_enabled": "False",
                     },
                     {
                         "name": "significant_flood_events.geojson",
                         "description": "Significant flood event geometry starting on Sep 24 2026",
                         "format": "geojson",
+                        "dataset_preview_enabled": "False",
                     },
                 ]
 

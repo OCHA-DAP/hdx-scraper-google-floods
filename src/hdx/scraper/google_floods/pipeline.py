@@ -102,6 +102,7 @@ class Pipeline:
         dataset = self.add_resources(dataset, all_events, all_geometries, start_date)
 
         dataset.set_custom_viz(dataset_info["custom_viz"])
+        dataset.preview_off()
 
         return dataset
 
